@@ -15,6 +15,7 @@ default:
 
 stages:
   - quality
+  - security
 
 before_script:
   - npm ci --cache .npm --prefer-offline
@@ -33,3 +34,25 @@ tests:
     expire_in: 1 week
     paths:
       - coverage/
+
+sonarcloud:
+  stage: security
+  image:
+    name: sonarsource/sonar-scanner-cli:12.2.0.4256_8.1.0
+    entrypoint: [""]
+  needs:
+    - job: tests
+      artifacts: true
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0"
+  cache:
+    key: "sonar-${CI_PROJECT_ID}"
+    paths:
+      - .sonar/cache
+  before_script: []
+  script:
+    - sonar-scanner -Dsonar.token="$SONAR_TOKEN"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
