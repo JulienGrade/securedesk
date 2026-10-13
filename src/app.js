@@ -38,3 +38,23 @@ app.post("/incidents", (request, response) => {
   incidents.push(incident);
   return response.status(201).json(incident);
 });
+
+app.patch("/incidents/:id", (request, response) => {
+  const allowedStatuses = ["OPEN", "INVESTIGATING", "CLOSED"];
+  const incident = incidents.find(({ id }) => id === request.params.id);
+
+  if (!incident) {
+    return response.status(404).json({ error: "INCIDENT_NOT_FOUND" });
+  }
+
+  if (!allowedStatuses.includes(request.body.status)) {
+    return response.status(400).json({ error: "INVALID_STATUS" });
+  }
+
+  if (incident.status === "CLOSED" && request.body.status === "OPEN") {
+    return response.status(409).json({ error: "INVALID_STATUS_TRANSITION" });
+  }
+
+  incident.status = request.body.status;
+  return response.json(incident);
+});

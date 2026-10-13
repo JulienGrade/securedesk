@@ -45,4 +45,56 @@ describe("SecureDesk API", () => {
     expect(response.status).toBe(400);
     expect(response.body.error).toBe("INVALID_INCIDENT");
   });
+
+  it("fait passer un incident en cours d'investigation", async () => {
+    const creation = await request(app)
+      .post("/incidents")
+      .send({ title: "Accès VPN indisponible", severity: "HIGH" });
+
+    const response = await request(app)
+      .patch(`/incidents/${creation.body.id}`)
+      .send({ status: "INVESTIGATING" });
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe("INVESTIGATING");
+  });
+
+  it("refuse un statut inconnu", async () => {
+    const creation = await request(app)
+      .post("/incidents")
+      .send({ title: "Accès VPN indisponible", severity: "HIGH" });
+
+    const response = await request(app)
+      .patch(`/incidents/${creation.body.id}`)
+      .send({ status: "ARCHIVED" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("INVALID_STATUS");
+  });
+
+  it("retourne 404 pour un incident inconnu", async () => {
+    const response = await request(app)
+      .patch("/incidents/00000000-0000-0000-0000-000000000000")
+      .send({ status: "CLOSED" });
+
+    expect(response.status).toBe(404);
+    expect(response.body.error).toBe("INCIDENT_NOT_FOUND");
+  });
+
+  it("interdit de rouvrir directement un incident fermé", async () => {
+    const creation = await request(app)
+      .post("/incidents")
+      .send({ title: "Accès VPN indisponible", severity: "HIGH" });
+
+    await request(app)
+      .patch(`/incidents/${creation.body.id}`)
+      .send({ status: "CLOSED" });
+
+    const response = await request(app)
+      .patch(`/incidents/${creation.body.id}`)
+      .send({ status: "OPEN" });
+
+    expect(response.status).toBe(409);
+    expect(response.body.error).toBe("INVALID_STATUS_TRANSITION");
+  });
 });
