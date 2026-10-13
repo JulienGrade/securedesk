@@ -1,0 +1,11 @@
+node_modules
+coverage
+.git
+.gitlab-ci.yml
+.env*
+docs
+test
+npm-debug.log*
+gitleaks-report.json
+trivy-report.json
+securedesk-image.tar
