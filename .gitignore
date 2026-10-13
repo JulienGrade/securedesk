@@ -1,0 +1,12 @@
+node_modules/
+coverage/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+.DS_Store
+.sonar/
+.trivycache/
+gitleaks-report.json
+trivy-report.json
+securedesk-image.tar
