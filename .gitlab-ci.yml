@@ -13,9 +13,15 @@ default:
     paths:
       - .npm/
 
+variables:
+  IMAGE_TAG: "securedesk:${CI_COMMIT_SHORT_SHA}"
+  DOCKER_TLS_CERTDIR: "/certs"
+
 stages:
   - quality
   - security
+  - build
+  - container_security
 
 before_script:
   - npm ci --cache .npm --prefer-offline
@@ -85,3 +91,51 @@ secret_detection:
     expire_in: 1 week
     paths:
       - gitleaks-report.json
+
+container_build:
+  stage: build
+  image: docker:27.5.1-cli
+  services:
+    - name: docker:27.5.1-dind
+      alias: docker
+  before_script: []
+  script:
+    - docker build --pull --tag "$IMAGE_TAG" .
+    - docker save "$IMAGE_TAG" --output securedesk-image.tar
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - securedesk-image.tar
+
+container_scan:
+  stage: container_security
+  image:
+    name: aquasec/trivy:0.74.0
+    entrypoint: [""]
+  needs:
+    - job: container_build
+      artifacts: true
+  before_script: []
+  variables:
+    TRIVY_CACHE_DIR: ".trivycache"
+  cache:
+    key: trivy-db
+    paths:
+      - .trivycache/
+  script:
+    - >-
+      trivy image
+      --input securedesk-image.tar
+      --format json
+      --output trivy-report.json
+    - >-
+      trivy image
+      --input securedesk-image.tar
+      --severity CRITICAL
+      --ignore-unfixed
+      --exit-code 1
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - trivy-report.json
