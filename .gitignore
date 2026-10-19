@@ -10,3 +10,5 @@ npm-debug.log*
 gitleaks-report.json
 trivy-report.json
 securedesk-image.tar
+.idea/
+
